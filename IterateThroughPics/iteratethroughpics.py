@@ -1,3 +1,4 @@
+from ast import arg
 import iptcinfo3, os, sys
 from numpy.lib.function_base import append
 import tensorflow as tf
@@ -13,6 +14,9 @@ import tkinter as tk
 from tkinter import StringVar, ttk
 from tkinter import filedialog as fd
 from tkinter.messagebox import showinfo
+import threading
+import ctypes
+ctypes.windll.shcore.SetProcessDpiAwareness(2)
 
 BAD_HYPERNYMS = set(['entity','physical_entity','object','whole','chordate','vertebrate','placental','matter','substance','artifact',
                      'organism','vascular_plant','angiospermous_tree', 'living_thing', 'abstraction', 'instrumentality','information',
@@ -43,13 +47,17 @@ def get_list_of_images(directory):
     # directory = input("Enter the path of the folder to process: ")
     # directory = "C:\\Users\\ibben\\Files\\School\\University\\SeniorProject\\IterateThroughPics\\pictures" # Hard-coded for testing
     # directory = "C:\\Users\\ibben\\Pictures\\Mission Pictures\\0. MTC"
-    
+    # print("Thread started")
     list_of_files = []
+    # print("Starting directory scan")
     for entry in os.scandir(directory.get()[17:]):
           if entry.is_file():
+            # print("Found file")
             if entry.path.endswith(('.jpeg','.jpg','.tiff')): # Filter to only the supported file types
                 if entry.path.find("._") == -1: # We don't want temp files, which start with ._ -1 is returned if not found
                     list_of_files.append(entry.path) # Append the path of the image to the running list of images in this directory
+                    # print("Found file {0}, adding to list of files",entry.path)
+                    # list_of_files.append(entry.path)
             elif entry.path.endswith('.png'):
                 if entry.path.find("._") == -1: # We don't want temp files, which start with ._ -1 is returned if not found
                     im = PIL.Image.open(entry.path)
@@ -58,6 +66,7 @@ def get_list_of_images(directory):
                     # list_of_files.append(entry.path)
 
     return list_of_files
+
 
 def classify_images(images):
     # Load pre-built image classifier
@@ -157,16 +166,16 @@ def gui():
     # root.attributes('-topmost', 1)
     # root.iconbitmap("C:\\Users\\ibben\\Files\\School\\University\\SeniorProject\\IterateThroughPics\\ai.ico")
 
-    window_width = int(root.winfo_screenwidth() / 4)
-    window_height = int(root.winfo_screenheight() / 4)
+    window_width = int(root.winfo_screenwidth() // 3)
+    window_height = int(root.winfo_screenheight() // 2.5)
     root.geometry(f'{window_width}x{window_height}')
 
     greeting = ttk.Label(root, text=GREETING_TEXT, wraplength=window_width)
     greeting.grid(padx=5,pady=5,columnspan=2)
     directory = StringVar()
     directory.set('Selected Folder: No folder selected')
-    dir_label = ttk.Label(root, textvariable=directory,wraplength=window_width)
-    dir_label.grid(padx=5,pady=5,columnspan=2)
+    dir_label = ttk.Label(root, textvariable=directory,wraplength=window_width - 10)
+    dir_label.grid(padx=10,pady=10,columnspan=2)
 
     def select_folder():
         filename = fd.askdirectory(
@@ -176,22 +185,38 @@ def gui():
         directory.set(str("Selected Folder: " + filename))
     
     browse = ttk.Button(root, text="Browse", command=select_folder)
-    browse.grid(row=2,column=0,padx=5,pady=5,sticky="E")
+    browse.grid(row=2,column=0,padx=10,pady=10,sticky="E")
+
+    output = tk.Text(root, width=60, height=5)
+    output.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
     def do_everything(directory):
+        browse["state"] = "disabled"
+        begin["state"] = "disabled"
+        begin["text"] = "Running"
+        output.insert(tk.END, "Starting...")
         images = Images() # Images object to hold our list of images
-        list_of_images = get_list_of_images(directory) # Get images from user selected folder
+        output.insert(tk.END, "\nGetting all images...")
+        list_of_images = get_list_of_images(directory) 
+        output.insert(tk.END, f"\nFound {len(list_of_images)} images.")
         images.add_images(list_of_images) # Add those file-paths to the images object. For each file, the Images object
                                         # creates a new Image with the file path and name
-
+        output.insert(tk.END, "\nClassifying images...")
         classify_images(images)
+        output.insert(tk.END, "\nFinished classifying. Starting hypernym lookup...")
         find_hypernyms_of_predictions(images)
+        output.insert(tk.END, "\nFinished hypernym lookup. Looking for text in images...")
         find_text_in_images(images)
+        output.insert(tk.END, "\nFinished finding text. Finishing up...")
         remove_underscores_from_words(images)
+        output.insert(tk.END, "\nSaving images...")
         tag_images(images)
+        output.insert(tk.END, "\Finished...")
+        begin["state"] = "enabled"
+        begin["text"] = "Start"
 
-    begin = ttk.Button(root, text="Begin", command= lambda: do_everything(directory))
-    begin.grid(row=2,column=1,padx=5,pady=5,sticky="W")
+    begin = ttk.Button(root, text='Start', command=lambda: threading.Thread(target=do_everything, args=(directory,)).start())
+    begin.grid(row=2,column=1,padx=10,pady=10,sticky="W")
 
 
     root.mainloop()
