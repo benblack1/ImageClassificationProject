@@ -167,14 +167,14 @@ def gui():
     # root.iconbitmap("C:\\Users\\ibben\\Files\\School\\University\\SeniorProject\\IterateThroughPics\\ai.ico")
 
     window_width = int(root.winfo_screenwidth() // 3)
-    window_height = int(root.winfo_screenheight() // 2.5)
+    window_height = int(root.winfo_screenheight() // 3)
     root.geometry(f'{window_width}x{window_height}')
 
-    greeting = ttk.Label(root, text=GREETING_TEXT, wraplength=window_width)
-    greeting.grid(padx=5,pady=5,columnspan=2)
+    greeting = ttk.Label(root, text=GREETING_TEXT, wraplength=(window_width - 20))
+    greeting.grid(padx=10,pady=10,columnspan=2)
     directory = StringVar()
     directory.set('Selected Folder: No folder selected')
-    dir_label = ttk.Label(root, textvariable=directory,wraplength=window_width - 10)
+    dir_label = ttk.Label(root, textvariable=directory,wraplength=(window_width - 20))
     dir_label.grid(padx=10,pady=10,columnspan=2)
 
     def select_folder():
@@ -187,10 +187,14 @@ def gui():
     browse = ttk.Button(root, text="Browse", command=select_folder)
     browse.grid(row=2,column=0,padx=10,pady=10,sticky="E")
 
-    output = tk.Text(root, width=60, height=5)
+    output = tk.Text(root, width=(window_width // 9), height=10)
     output.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
     def do_everything(directory):
+        output.insert(tk.END, f"{directory.get()}")
+        if(directory.get() == "Selected Folder: No folder selected" or directory.get() == "Selected Folder: "):
+            output.insert(tk.END, "\nInvalid folder. Please try again\n")
+            return
         browse["state"] = "disabled"
         begin["state"] = "disabled"
         begin["text"] = "Running"
