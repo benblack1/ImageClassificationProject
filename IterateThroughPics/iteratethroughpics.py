@@ -24,7 +24,7 @@ BAD_HYPERNYMS = set(['entity','physical_entity','object','whole','chordate','ver
 
 root = tk.Tk()
 
-GREETING_TEXT = """Hello! Welcome to Ben Black's Senior Project, where you can use AI to help you manage your photo libraries. This nifty program will use machine learning to look at each image in a folder of your choosing, then utilize the power of AI to intelligently tag that image with whatever text or objects it recognizes. To begin, click the Choose Folder button."""
+GREETING_TEXT = """Hello! Welcome to Ben Black's Senior Project, where you can use AI to help you manage your photo libraries. This nifty program will use machine learning to look at each image in a folder of your choosing, then utilize the power of AI to intelligently tag that image with whatever text or objects it recognizes. To begin, click the "Browse" button."""
 
 class Image:
     def __init__(self, path):
@@ -43,29 +43,24 @@ class Images:
         for image in list_of_images:
             self.images.append(Image(image))
 
-def get_list_of_images(directory):
-    # directory = input("Enter the path of the folder to process: ")
-    # directory = "C:\\Users\\ibben\\Files\\School\\University\\SeniorProject\\IterateThroughPics\\pictures" # Hard-coded for testing
-    # directory = "C:\\Users\\ibben\\Pictures\\Mission Pictures\\0. MTC"
-    # print("Thread started")
-    list_of_files = []
-    # print("Starting directory scan")
-    for entry in os.scandir(directory.get()[17:]):
-          if entry.is_file():
-            # print("Found file")
+
+def get_list_of_images(directory, list_of_images):
+    for entry in os.scandir(directory):
+        if entry.is_file():
             if entry.path.endswith(('.jpeg','.jpg','.tiff')): # Filter to only the supported file types
                 if entry.path.find("._") == -1: # We don't want temp files, which start with ._ -1 is returned if not found
-                    list_of_files.append(entry.path) # Append the path of the image to the running list of images in this directory
-                    # print("Found file {0}, adding to list of files",entry.path)
-                    # list_of_files.append(entry.path)
+                    list_of_images.append(entry.path) # Append the path of the image to the running list of images in this directory
+
             elif entry.path.endswith('.png'):
                 if entry.path.find("._") == -1: # We don't want temp files, which start with ._ -1 is returned if not found
                     im = PIL.Image.open(entry.path)
                     jpg = im.convert("RGB")
                     jpg.save(entry.path[:-4] + '.jpg')
-                    # list_of_files.append(entry.path)
 
-    return list_of_files
+        elif entry.is_dir():
+            get_list_of_images(entry.path, list_of_images)
+
+    return list_of_images
 
 
 def classify_images(images):
@@ -198,10 +193,11 @@ def gui():
         browse["state"] = "disabled"
         begin["state"] = "disabled"
         begin["text"] = "Running"
-        output.insert(tk.END, "Starting...")
+        output.insert(tk.END, "\nStarting...")
         images = Images() # Images object to hold our list of images
         output.insert(tk.END, "\nGetting all images...")
-        list_of_images = get_list_of_images(directory) 
+        list_of_files = []
+        list_of_images = get_list_of_images(directory.get()[17:], list_of_files) 
         output.insert(tk.END, f"\nFound {len(list_of_images)} images.")
         images.add_images(list_of_images) # Add those file-paths to the images object. For each file, the Images object
                                         # creates a new Image with the file path and name
@@ -211,12 +207,13 @@ def gui():
         find_hypernyms_of_predictions(images)
         output.insert(tk.END, "\nFinished hypernym lookup. Looking for text in images...")
         find_text_in_images(images)
-        output.insert(tk.END, "\nFinished finding text. Finishing up...")
+        output.insert(tk.END, "\nFinished finding text. Formatting...")
         remove_underscores_from_words(images)
         output.insert(tk.END, "\nSaving images...")
         tag_images(images)
-        output.insert(tk.END, "\Finished...")
+        output.insert(tk.END, "\nFinished!")
         begin["state"] = "enabled"
+        browse["state"] = "enabled"
         begin["text"] = "Start"
 
     begin = ttk.Button(root, text='Start', command=lambda: threading.Thread(target=do_everything, args=(directory,)).start())
