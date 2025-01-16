@@ -1,4 +1,5 @@
-## Ben Black's Senior Project
+## Ben Black's Image Classification Application 
+### Developed for Vulpine Marketing, Idaho Falls
 Image Classification Algorithm for Image Searching though Picture Dumps
 
 *September 2021 - April 2022*
